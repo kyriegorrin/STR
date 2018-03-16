@@ -11,22 +11,8 @@
 double tiempo;
 double distancia;
 
-ISR (TIMER1_CAPT_vect) {
-  if (PIND & 0x04) { //El evento fue un flanco ascendente
-     TCCR1B |= (1 << CS11);
-     Serial.print("Tiempo cuando flanco ascendente: ");
-     Serial.println(ICR1);
-  }
-  else { //El evento fue un flanco descendente
-    tiempo  = ICR1; //Cuando hay un evento el valor de TCNT1 se copia en ICR1!
-    TCCR1B ^= (1 << CS11);
-    TCNT1   = 0; //Reset del timer
-    Serial.print("Tiempo cuando flanco descendente: ");
-    Serial.println(ICR1);
-  }
-  
-  TCCR1B ^= (1 << ICES1); //Toggle del flanco que se miraba
-
+ISR (TIM4_CAPT_vect) {
+  Serial.println("Esta dentro cariño");
 }
 
 void setup() {
@@ -38,14 +24,19 @@ void setup() {
   PORTE &= ~(1 << PE4); //Initial output = 0
 
   //Interrupt config (echo pin)
-  DDRD  &=   ~(1 << PD4);  //PD4 es el pin ICP1 (input capture del timer 1), lo configuramos de input
-  PORTD |= (1 << PORTD4);  //Pull-up resistor
+  DDRL &= ~(0b00000001);  //PL0 es el pin ICP4 (input capture del timer 4), lo configuramos de input
+  //PORTL |=  (1 << PORTL0);  //Pull-up resistor
+  
+  DDRD &= ~(0b00000001); //INT0 pin set as input (TRIGGER_PIN); 
+  PORTD |= (1 << PORTD0); //Turning on pull-up resistor
+
 
   //Timer1 Input Capture U. configuracion
-  TCCR1A  = 0; //Los bits COMx no tienen efecto sobre la unidad IC. y queremos que opere en modo Normal
-  TCCR1B &= (1 << ICES1); //Flanco ascendente y prescaler de 8
+  TCCR4A &= (1 << WGM41); //Los bits COMx no tienen efecto sobre la unidad IC. y queremos que opere en modo Normal
+  TCCR4B &= (1 << ICNC4) | (1 << ICES4) | (1 << CS41) | (1 << WGM43); //Flanco ascendente
+  TCNT4 = 0;    
 
-  TCNT1 = 0;    
+  TIMSK4 &= (1 << ICIE4);
 
   //inicializacion variables
   tiempo = 0.0;
@@ -63,8 +54,6 @@ void loop() {
   //El timer está configurado para que cada clock sea de 0.5us, así
   //que tenemos que adaptar los calculos a ello.
 
-  Serial.print("Valor ICP1: ");
-  Serial.println(PIND & 0x04); 
   distancia = (tiempo/116.0);
   //Serial.println(distancia);
   _delay_ms(100);
