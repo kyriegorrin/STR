@@ -2,6 +2,15 @@
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
+//Este programa calcula i escribe por serial la distancia entre el
+//sensor HRC04 y la superficie que tenga delante. Para eso, necesitamos
+//configurar y usar interrupciones externas correctamente. Cuando mandamos un pulso
+//al sensor, debemos controlar los flancos que nos llegan por el pin asignado a INT0.
+//En caso de flanco ascendednte, iniciamos timer. En caso de ser descendente, paramos el
+//timer, cogemos el valor y lo usamos para hacer nuestros cálculos de distancia.
+//Finalmente, reseteamos el contenido del timer. Nuestro loop simplemente muestra el
+//valor resultante de los cálculos por serial.
+
 //Variables auxiliars
 unsigned int timer1Val;
 double distancia;
