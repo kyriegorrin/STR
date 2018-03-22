@@ -1,15 +1,10 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
+#include "HRC04.h"
 
 //Variables auxiliars
 unsigned int timer1Val;
 double distancia;
 
-/* DESCRIPCIO TODO */
-//TRIGGER: 
-//ECHO: PD0
-
+//Rutina de servei d'interrupció PROBABLEMENT S'HA DE TUNEJAR
 ISR(INT0_vect){
   //Testing
   if(PIND & 0x01){//Enxufa timer
@@ -23,10 +18,7 @@ ISR(INT0_vect){
   }
 }
 
-void setup() {
-  //Enabling serial communication
-  Serial.begin(9600);
-
+HRC04::HRC04() {
   //General I/O config
   //Trigger pin
   DDRE |= (1 << PE4); //Setting as output
@@ -53,7 +45,9 @@ void setup() {
   sei();  //Enabling global interrupts
 }
 
-void loop() {
+HRC04::~HRC04(){/*L'avia morta que la tracti algu altre*/}
+
+double HRC04::getDistancia() {
   //PORTE &= ~(1 << PE0);
   PORTE |= (1 << PE4); //Trigger HIGH
   _delay_us(15); //Wait minimum time
@@ -61,7 +55,7 @@ void loop() {
   //El timer está configurado para que cada clock sea de 0.5us, así
   //que tenemos que adaptar los calculos a ello.
   distancia = (timer1Val/116.0);
-  Serial.println(distancia);
-  _delay_ms(100);  
+  _delay_ms(100); 
+  return distancia; 
 }
 

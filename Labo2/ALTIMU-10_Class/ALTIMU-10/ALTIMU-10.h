@@ -5,7 +5,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
-#include <Wire.h>
 #include <LSM6.h>
 
 class ALTIMU10 {
@@ -16,7 +15,7 @@ class ALTIMU10 {
 		ALTIMU10();
 		~ALTIMU10();
 	
-		void read_imu();	
+		double read_imu();	
 };
 
 #endif

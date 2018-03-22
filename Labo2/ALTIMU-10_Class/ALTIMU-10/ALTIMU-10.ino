@@ -1,13 +1,18 @@
 #include "ALTIMU-10.h"
 
-typedef ALTIMU10 sensor;
-
-sensor gyro;
+ALTIMU10* gyro;
 
 void setup() {
-  Serial.begin(9600);
+
+  gyro = new ALTIMU10();
+  
 }
 
 void loop() {
-  gyro.read_imu();
+  
+  Serial.print("Inclinacion eje 'y' :");
+  Serial.println(gyro->read_imu());
+  
+  _delay_ms(100);
+  
 }

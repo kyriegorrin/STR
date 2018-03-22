@@ -11,4 +11,7 @@ public:
 	HRC04();
 	~HRC04();
 	double getDistancia();	
-}
+  
+};
+
+#endif
