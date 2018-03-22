@@ -6,9 +6,9 @@
 unsigned int timer1Val;
 double distancia;
 
-/* DESCRIPCIO TODO */
-//TRIGGER: 
-//ECHO: PD0
+/* DESCRIPCIO DE PINS */
+//TRIGGER: 1(TX0 arduino)
+//ECHO: 21 (SCL arduino)
 
 ISR(INT0_vect){
   //Testing

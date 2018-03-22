@@ -2,11 +2,9 @@
 #include <util/delay.h>
 #define BLINK_DELAY_MS 1000
 
-/*
-ISR () //Interrupt vector
-{
-  //have fun
-}*/
+/* Este codigo hace el blink de un LED 
+   a base de hacer el toggle del pin
+   asociado al LED (poniendo un uno). */
 
 void setup() {
   // initialize digital pin 13 as an output// It is PB7 on Atmega2560 chip.
