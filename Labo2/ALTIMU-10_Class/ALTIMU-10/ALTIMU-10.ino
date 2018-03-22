@@ -1,5 +1,9 @@
 #include "ALTIMU-10.h"
 
+/* Proyecto de arduino que es capaz de devolvernos
+   la lectura del eje y del giroscopio del sensor
+   ALTIMU-10 de Pololu */
+
 ALTIMU10* gyro;
 
 void setup() {

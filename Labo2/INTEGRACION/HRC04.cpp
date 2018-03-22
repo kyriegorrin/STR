@@ -1,24 +1,10 @@
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
-
-/*Este programa calcula i escribe por serial la distancia entre el
-  sensor HRC04 y la superficie que tenga delante. Para eso, necesitamos
-  configurar y usar interrupciones externas correctamente. Cuando mandamos un pulso
-  al sensor, debemos controlar los flancos que nos llegan por el pin asignado a INT0.
-  En caso de flanco ascendednte, iniciamos timer. En caso de ser descendente, paramos el
-  timer, cogemos el valor y lo usamos para hacer nuestros cálculos de distancia.
-  Finalmente, reseteamos el contenido del timer. Nuestro loop simplemente muestra el
-  valor resultante de los cálculos por serial. Notese que usamos el TIMER1 */
+#include "HRC04.h"
 
 //Variables auxiliars
 unsigned int timer1Val;
 double distancia;
 
-/* DESCRIPCIO DE PINS */
-//TRIGGER: 1(TX0 arduino)
-//ECHO: 21 (SCL arduino)
-
+//Rutina de servei d'interrupció PROBABLEMENT S'HA DE TUNEJAR
 ISR(INT0_vect){
   //Testing
   if(PIND & 0x01){//Enxufa timer
@@ -32,10 +18,7 @@ ISR(INT0_vect){
   }
 }
 
-void setup() {
-  //Enabling serial communication
-  Serial.begin(9600);
-
+HRC04::HRC04() {
   //General I/O config
   //Trigger pin
   DDRE |= (1 << PE4); //Setting as output
@@ -62,7 +45,9 @@ void setup() {
   sei();  //Enabling global interrupts
 }
 
-void loop() {
+HRC04::~HRC04(){/*L'avia morta que la tracti algu altre*/}
+
+double HRC04::getDistancia() {
   //PORTE &= ~(1 << PE0);
   PORTE |= (1 << PE4); //Trigger HIGH
   _delay_us(15); //Wait minimum time
@@ -70,7 +55,7 @@ void loop() {
   //El timer está configurado para que cada clock sea de 0.5us, así
   //que tenemos que adaptar los calculos a ello.
   distancia = (timer1Val/116.0);
-  Serial.println(distancia);
-  _delay_ms(100);  
+  _delay_ms(100); 
+  return distancia; 
 }
 

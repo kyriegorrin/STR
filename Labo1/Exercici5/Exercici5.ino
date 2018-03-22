@@ -12,7 +12,7 @@ double tiempo;
 double distancia;
 
 ISR (TIM4_CAPT_vect) {
-  Serial.println("Esta dentro cariño");
+	//Copia en el ICR el contenido del timer (diferencia entre inicio y fin), es decir, lo que ha durado el flanco
 }
 
 void setup() {
