@@ -18,7 +18,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.print(sensDistancia->getDistancia());
+  Serial.println(sensDistancia->getDistancia());
   _delay_ms(100); 
 }
 
