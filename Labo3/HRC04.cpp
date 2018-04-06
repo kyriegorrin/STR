@@ -1,13 +1,16 @@
 #include "HRC04.h"
 
+//TRIGGER_PIN 1
+//ECHO_PIN 19 -> TO FIX INTO THE CODE
+
 //Variables auxiliars
 unsigned int timer1Val;
 double distancia;
 
 //Rutina de servei d'interrupció PROBABLEMENT S'HA DE TUNEJAR
-ISR(INT0_vect){
+ISR(INT2_vect){
   //Testing
-  if(PIND & 0x01){//Enxufa timer
+  if(PIND & 0x04){//Enxufa timer
     //Prescaler a 8, posem en marxa timer
     TCCR1B |= (1 << CS11);
   }else{//Desconecta a l'avia
@@ -25,11 +28,11 @@ HRC04::HRC04() {
   PORTE &= ~(1 << PE4); //Initial output = 0
 
   //Interrupt config (echo pin)
-  DDRD &= ~(0b00000001); //INT0 pin set as input (TRIGGER_PIN);
-  PORTD |= (1 << PORTD0); //Turning on pull-up resistor
+  DDRD &= ~(0b00000100); //INT0 pin set as input (TRIGGER_PIN);
+  //PORTD |= (1 << PORTD0); //Turning on pull-up resistor
 
-  EICRA |= (1 << ISC00); //Setting interrupt trigger on ANY logic change
-  EIMSK |= (1 << INT0); //Turning on INT0
+  EICRA |= (1 << ISC20); //Setting interrupt trigger on ANY logic change
+  EIMSK |= (1 << INT2); //Turning on INT0
 
   //TIMERS CONFIG
   //Registres de configuracio a 0 inicialment
@@ -54,7 +57,7 @@ double HRC04::getDistancia() {
   PORTE &= ~(1 << PE4); //Trigger LOW
   //El timer está configurado para que cada clock sea de 0.5us, así
   //que tenemos que adaptar los calculos a ello.
-  distancia = (timer1Val/116.0);
+  distancia = 10*timer1Val/116;
   _delay_ms(100); 
   return distancia; 
 }
