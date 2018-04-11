@@ -32,7 +32,7 @@ void setup(){
 void loop(){
   dist = sensDistancia->getDistancia();
   deg  = (int) gyro->read_imu();
-  
+  /*
   itoa(dist, sendBuffer, 10);
   Udp.beginPacket(destIP, 8889);
   Udp.write(sendBuffer);
@@ -41,11 +41,23 @@ void loop(){
   Udp.beginPacket(destIP, 8889);
   itoa(deg, sendBuffer, 10);
   Udp.write(sendBuffer);
+  Udp.endPacket();*/
+
+  //New soplanucas code unified version
+  Udp.beginPacket(destIP, 8889);
+  itoa(dist, sendBuffer, 10);
+  Udp.write(sendBuffer);
+  itoa(deg, sendBuffer, 10);
+  Udp.write(",");
+  Udp.write(sendBuffer);
   Udp.endPacket();
 
-  Serial.print("Sensor dist.");
-  Serial.println(dist);
-  Serial.print("Sensor deg.");
+  //Muerdealmohadas code here
+  //TODO
+
+  //Debug purposes (it's plottable)
+  Serial.print(dist);
+  Serial.print(" ");
   Serial.println(deg);
   
   delay(1000);
