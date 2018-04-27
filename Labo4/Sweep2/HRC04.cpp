@@ -58,7 +58,7 @@ double HRC04::getDistancia() {
   //El timer está configurado para que cada clock sea de 0.5us, así
   //que tenemos que adaptar los calculos a ello.
   distancia = 10*timer1Val/116;
-  _delay_ms(100); 
+  _delay_ms(15); 
   return distancia; 
 }
 
