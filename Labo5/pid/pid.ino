@@ -15,14 +15,16 @@
  * comprobarlos y porque queda bonito.
  */
 //-------------------------------------------------------------------------------------//
- 
+
+//GRAU MIG  PER LINIA RECTA: 84
+
 Servo myservo;  // create servo object to control a servo
 
 HRC04* dist_sensor;
 
 //Variable del PID
 unsigned long lastTime;
-double Input, Output, Setpoint;
+double Input, Output, Setpoint, Degree;
 double errSum, lastErr;
 double kp, ki, kd;
 
@@ -37,6 +39,16 @@ void distanceToPosition(){
   //We saturate the value to 180 so we don't destroy the servo
   if(mm > 180) mm = 180;
   myservo.write(mm);  
+}
+
+//Function to get the mean of 4 measures in milimeters
+double getMeanDistance(){
+  double mm = 0;
+  for(int i = 0; i < 4; ++i){
+    mm += dist_sensor->getDistancia();
+  } mm = mm/4;
+  
+  return mm;
 }
 
 //PID MEMES
@@ -73,20 +85,26 @@ void setup() {
   dist_sensor = new HRC04();
 
   //Tunejant el Eight-Six
-  SetTunings(0,0,0);
+  SetTunings(0.9, 0 , 0.5);
 
-  //Quin set point volem?
-  Setpoint = 150;
+  //Quin set point volem en mm?
+  Setpoint = 100;
 }
 
 void loop() {
   //distanceToPosition();
   //myservo.write(90);
 
-  Input = (int) dist_sensor->getDistancia();
+  Input = getMeanDistance();
   Compute();
-  //myservo.write(Output);
-  Serial.println(Input);
-  //Serial.println(Output);
+  
+  if (Output <= -200) Output = -200;
+  else if (Output >= 100) Output = 100;
+  
+  Degree = map(Output, -200, 100, 84-20, 84+20);
+  myservo.write(Degree);
+  Serial.print(Input);
+  Serial.print("   ");
+  Serial.println(Output);
 }
 
