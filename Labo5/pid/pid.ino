@@ -16,7 +16,7 @@
  */
 //-------------------------------------------------------------------------------------//
 
-//GRAU MIG  PER LINIA RECTA: 84
+//GRAU MIG  PER LINIA RECTA: 82-84
 
 Servo myservo;  // create servo object to control a servo
 
@@ -27,6 +27,8 @@ unsigned long lastTime;
 double Input, Output, Setpoint, Degree;
 double errSum, lastErr;
 double kp, ki, kd;
+
+double lastInput;
 
 //Function to map distance from the sun and beyond and map it to the servo
 void distanceToPosition(){
@@ -44,11 +46,22 @@ void distanceToPosition(){
 //Function to get the mean of 4 measures in milimeters
 double getMeanDistance(){
   double mm = 0;
-  for(int i = 0; i < 4; ++i){
+  for(int i = 0; i < 3; ++i){
     mm += dist_sensor->getDistancia();
-  } mm = mm/4;
+  } mm = mm/3;
   
   return mm;
+}
+
+//Funció de filtratge de inputs (assumim que diferencies elevades entre
+//inputs és un pic estrany i l'aplanem com podem)
+void filterInput(){
+  double diff = Input - lastInput;
+  double diffAbs = abs(diff);
+  if (diffAbs >= 50){
+    Input = 0.4*(diff) + lastInput;
+  }
+  lastInput = Input;
 }
 
 //PID MEMES
@@ -85,24 +98,35 @@ void setup() {
   dist_sensor = new HRC04();
 
   //Tunejant el Eight-Six
-  SetTunings(0.9, 0 , 0.5);
+  SetTunings(0.3, 0 , 3);
 
   //Quin set point volem en mm?
-  Setpoint = 100;
+  Setpoint = 170;
+
+  lastInput = getMeanDistance();
 }
 
 void loop() {
-  //distanceToPosition();
-  //myservo.write(90);
-
+  //Lectura i quimioterapia de input
   Input = getMeanDistance();
+  filterInput();
+
+  //Saturació valors input (Distancies superiors a 220 el tornen boig)
+  if(Input > 280) Input = 280;
+  
+  //Computas y a lo loco
   Compute();
-  
-  if (Output <= -200) Output = -200;
+
+  //Saturació de valors de output per si el sensor es torna excessivament boig
+  if (Output <= -100) Output = -100;
   else if (Output >= 100) Output = 100;
-  
-  Degree = map(Output, -200, 100, 84-20, 84+20);
+
+  //Mapejar rangs de graus i moure
+  Degree = map(Output, -100, 100, 82-30, 82+30);
   myservo.write(Degree);
+  
+  //Takumi installed a new tachometer and now can check his RPMs
+  //Si no poses aquests prints, el servo no fa write WTF QUE
   Serial.print(Input);
   Serial.print("   ");
   Serial.println(Output);
