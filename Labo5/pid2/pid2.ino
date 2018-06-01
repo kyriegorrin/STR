@@ -3,16 +3,17 @@
 
 //------------------------------------ARTEMANÍACOS SECTION-----------------------------//
 /*
- * El código es simple y no hay mucho que explicar. Pero lo poco que hay, lo explicamos.
- * Utilizando el sensor de distancia (y nuestra librería) obtenemos un valor en milímetros,
- * el cual usaremos para mover el servo hasta un máximo de 180º.
+ * En esta practica utilizamos un PIC controller donde la componente integral no se utiliza.
+ * Para ello, calculamos un error con el PD controller y mapeamos un rango de posibles valores de 
+ * error a un rango de ángulos de correccion. Ha habido muchos problemas con el sensor ya 
+ * que nos hace lecturas muy raras en ocasiones, tanto con nuestra clase como con pulseIn().
  * 
- * Saturamos el valor a 180º ya que es el valor máximo que permite el servo y no queremos
- * destruirlo, con los daños y perjuicios que pueda suponer.
+ * Para mitigar todo esto hemos filtrado las lecturas lo máximo que hemos podido, tanto con
+ * media de valores como por control de diferenciales elevados. También saturamos los valores
+ * para acabar de filtrar los valores altamente excesivos. El problema es que hacer todo esto provoca
+ * latencia en las lecturas, por lo que las correcciones no se hacen a tiempo.
  * 
- * Para estabilizar un poco los movimientos, hacemos medias aritméticas de cada 3 entradas
- * de distancia. También mostramos por serial el valor leído del sensor, por si es necesario
- * comprobarlos y porque queda bonito.
+ * En general nos está quitando las ganas de vivir un poco.
  */
 //-------------------------------------------------------------------------------------//
 
@@ -138,7 +139,7 @@ void setup() {
 
 void loop() {
   //Lectura i quimioterapia de input
-  Input = getMeanDistance();
+  Input = getDistance();
   filterInput();
 
   //Saturació valors input (Distancies superiors a 280 el tornen boig)
@@ -156,7 +157,6 @@ void loop() {
   myservo.write(Degree);
   
   //Takumi installed a new tachometer and now can check his RPMs
-  //Si no poses aquests prints, el servo no fa write WTF QUE
   Serial.print(Input);
   Serial.print("   ");
   Serial.println(Output);
