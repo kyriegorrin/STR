@@ -49,12 +49,13 @@ void SetTunings(double Kp, double Ki, double Kd){
 /////////////RTOS STUFF NOW/////////////////////
 
 void taskRdSensor(void * pvParameters){
-
   //Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
   xLastWakeTime = xTaskGetTickCount();
   
   for (;;) {
+    //unsigned long t1 = millis();
+
     Serial.println("SENSOR");
     double duration;
     //Per assegurar-se de una bona lectura
@@ -70,14 +71,15 @@ void taskRdSensor(void * pvParameters){
 
     //Conversions de distancia
     distance = (duration/2) / 2.91;
-
+    //unsigned long t2 = millis();
+    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
     //Bloquejem fins X
-    vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 250 ) );
+    vTaskDelay( pdMS_TO_TICKS( 200 ) );
   }
 }
 
 void taskCalculate(void * pvParameters){
-
+  
    //Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
   xLastWakeTime = xTaskGetTickCount();
@@ -85,6 +87,7 @@ void taskCalculate(void * pvParameters){
 	unsigned long lastTime = xTaskGetTickCount();
 	double lastErr = 0.0;
 	for (;;) {
+    //unsigned long t1 = millis();
     Serial.println("CALCULATE");
 		static unsigned long now = xTaskGetTickCount();
 		static double timeChange = (double)(now - lastTime);
@@ -99,23 +102,28 @@ void taskCalculate(void * pvParameters){
 		lastTime = now;
 
     //Bloquejem fins X
-    vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 250 ) );
+    //unsigned long t2 = millis();
+    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
+    vTaskDelay( pdMS_TO_TICKS( 200 ));
 	}  
 }
 
 void taskActuator(void * pvParameters){
-
   //Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
   xLastWakeTime = xTaskGetTickCount();
   
 	for (;;) {
+    //unsigned long t1 = millis();
+
     Serial.println("ACTUATOR");
 		static int degree = map(PID_output, -200, 200, 54, 114);
 		myservo.write(degree);
 
+    //unsigned long t2 = millis();
+    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
     //Bloquejem fins X
-    vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 250 ) );
+    vTaskDelay( pdMS_TO_TICKS( 200 ) );
 	} 
 }
 
@@ -159,7 +167,7 @@ void taskTracer(void * pvParameters) {
   		free(status_array);
 
       //Bloquejem fins X
-      vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 250 ) );
+      vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 25 ) );
     }
       
 }
@@ -187,7 +195,7 @@ void setup() {
   xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
   
   //The tracer, which runs periodically
-  //xTaskCreate(taskTracer, "TRACER_TASK", 256, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
+  xTaskCreate(taskTracer, "TRACER_TASK", 256, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
 
   vTaskStartScheduler(); 
   
