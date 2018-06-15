@@ -14,10 +14,14 @@
 #define TASKS 4
 #define BUFFER_SIZE 2000
 
-#define TRACER_PRIO   4 //Max. en el RT
-#define SENSOR_PRIO   3 
-#define CALC_PRIO     2
-#define ACTUATOR_PRIO 1 
+#define TRACER_PRIO   7 //Max. en el RT
+#define SENSOR_PRIO   6 
+#define CALC_PRIO     5
+#define ACTUATOR_PRIO 4
+#define DUMMYA_PRIO   3
+#define DUMMYB_PRIO   2
+#define DUMMYC_PRIO   1 
+
 
 /////////////INSANE GLOBAL VARIABLES HERE///////
 
@@ -37,6 +41,9 @@ static const char *RD_TEXT 		          = "Sensor";
 static const char *CALCULATE_ERROR_TEXT = "Calculate";
 static const char *ACTUATOR_TEXT	      = "Actuator"; 
 static const char *TRACER_TEXT 		      = "Tracer";
+static const char *DUMMYA_TEXT          = "DummyA";
+static const char *DUMMYB_TEXT          = "DummyB";
+static const char *DUMMYC_TEXT          = "DummyC";
 
 char buff [BUFFER_SIZE];
 
@@ -217,6 +224,27 @@ void taskTracer(void * pvParameters) {
       
 }
 
+void taskDummyA (void * pvParameters) {
+  for(;;) {
+    delay(25);
+    vTaskDelay( pdMS_TO_TICKS( 200 ) );
+  }
+}
+
+void taskDummyB (void * pvParameters) {
+  for (;;) {
+    delay(25);
+    vTaskDelay( pdMS_TO_TICKS( 200 ) );
+  }
+}
+
+void taskDummyC (void * pvParameters) {
+  for (;;) {
+    delay(25);
+    vTaskDelay( pdMS_TO_TICKS( 200 ) );
+  }
+}
+
 
 /////////////KLASSIC ARDUINO STUFF NOW/////////////////////
 void setup() {
@@ -232,6 +260,11 @@ void setup() {
   SetTunings(0.2, 0, 8); //As is never called from a thread, no mutexes inside this function are needed
   SetPoint = 255.0; //a cara de perro
 
+  //Dummy tasks
+  xTaskCreate(taskDummyA, "DUMMYA_TASK", 256, (void*)DUMMYA_TEXT, DUMMYA_PRIO, NULL);
+  xTaskCreate(taskDummyB, "DUMMYB_TASK", 256, (void*)DUMMYB_TEXT, DUMMYB_PRIO, NULL);
+  xTaskCreate(taskDummyC, "DUMMYC_TASK", 256, (void*)DUMMYC_TEXT, DUMMYC_PRIO, NULL);
+  
   //Task to read the sensor
   xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
 
