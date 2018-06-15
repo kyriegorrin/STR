@@ -212,7 +212,7 @@ void taskTracer(void * pvParameters) {
 
 		int i; 
     char tmp[75];
-		sprintf(buff, "/*** time: %d ms ***\\\n", count*25); //tiempo en el que se tomó esta parte de la traza
+		sprintf(buff, "/*** time: %lu ms ***\\\n", millis()); //tiempo en el que se tomó esta parte de la traza
     sprintf(tmp, "NAME\tSTATE\tCPRIORITY\n");
     strcat(buff, tmp);
     
@@ -276,6 +276,8 @@ void taskPriorityExchanger (void * pvParameters) {
   prio[2] = &dummyC; //C
   
   for(;;) {
+    vTaskDelay( pdMS_TO_TICKS( 200 ));
+    
     SetState(&status_array[7], EXCHAN_TEXT, state_t::RUN_S, EXCHAN_PRIO);
     if(prio[0] == &dummyC) up = false;
     else if(prio[2] == &dummyC) up = true;
@@ -308,8 +310,13 @@ void taskPriorityExchanger (void * pvParameters) {
         vTaskPrioritySet(dummyB, DUMMYB_PRIO); 
       }      
     }
+
+    SetState(&status_array[6], DUMMYC_TEXT, status_array[6].state, uxTaskPriorityGet(dummyC));
+    SetState(&status_array[5], DUMMYB_TEXT, status_array[5].state, uxTaskPriorityGet(dummyB));
+    SetState(&status_array[4], DUMMYA_TEXT, status_array[4].state, uxTaskPriorityGet(dummyA));
+
     SetState(&status_array[7], EXCHAN_TEXT, state_t::RUN_S, EXCHAN_PRIO);
-    vTaskDelay( pdMS_TO_TICKS( 200 ));
+    
   }  
 }
 
