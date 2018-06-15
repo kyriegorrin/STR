@@ -33,14 +33,30 @@ int tracerfile_fd;
 
 Servo myservo;
 
-static const char *RD_TEXT 		= "Task \"taskRdSensor\" is running\r\n";
-static const char *CALCULATE_ERROR_TEXT = "Task \"taskCalculate\" is running\r\n";
-static const char *ACTUATOR_TEXT	= "Task \"taskActuator\" is running\r\n"; 
-static const char *TRACER_TEXT 		= "Task \"taskTracer\" is running\r\n";
+static const char *RD_TEXT 		          = "Sensor";
+static const char *CALCULATE_ERROR_TEXT = "Calculate";
+static const char *ACTUATOR_TEXT	      = "Actuator"; 
+static const char *TRACER_TEXT 		      = "Tracer";
 
 char buff [BUFFER_SIZE];
 
-TaskStatus_t status_array [sizeof(TaskStatus_t)*4];
+typedef enum {
+  IDLE_S,   //0
+  RUN_S,    //1
+  BLOCKED_S //2
+} state_t;
+
+typedef struct {
+
+  char* taskName;
+
+  state_t state;
+
+  UBaseType_t uxCurrentPriority;
+  
+} taskstruct_t; //Linux like, happy Juan José Costa!
+
+taskstruct_t status_array [sizeof(taskstruct_t)*TASKS];
 
 /////////////AUX. FUNCTIONS/////////////////////
 
@@ -50,17 +66,40 @@ void SetTunings(double Kp, double Ki, double Kd){
   kd = Kd;
 }
 
+void InitializePCBs() {
+  
+  status_array[0].taskName = RD_TEXT;
+  status_array[1].taskName = CALCULATE_ERROR_TEXT;
+  status_array[2].taskName = ACTUATOR_TEXT;
+  status_array[3].taskName = TRACER_TEXT;
+
+  status_array[0].uxCurrentPriority = SENSOR_PRIO;
+  status_array[1].uxCurrentPriority = CALC_PRIO;
+  status_array[2].uxCurrentPriority = ACTUATOR_PRIO;
+  status_array[3].uxCurrentPriority = TRACER_PRIO;
+  
+  for (int i = 0; i < TASKS; ++i) {
+    status_array[i].state = IDLE_S;  
+  }  
+  
+} //Todas las tareas en IDLE
+
+void SetState(taskstruct_t * pcb, const char* taskName, state_t state, UBaseType_t uxCurrentPriority) {
+  
+  pcb->taskName = taskName;
+  pcb->state    = state;
+  pcb->uxCurrentPriority = uxCurrentPriority;  
+  
+}
+
 /////////////RTOS STUFF NOW/////////////////////
 
 void taskRdSensor(void * pvParameters){
-  //Trickery per a fer marranades de blocks
-  TickType_t xLastWakeTime;
-  xLastWakeTime = xTaskGetTickCount();
   
   for (;;) {
-    //unsigned long t1 = millis();
-
     Serial.println("SENSOR");
+    SetState(&status_array[0], RD_TEXT, state_t::RUN_S, SENSOR_PRIO);
+
     double duration;
     //Per assegurar-se de una bona lectura
     digitalWrite(trigPin, LOW);
@@ -75,24 +114,24 @@ void taskRdSensor(void * pvParameters){
 
     //Conversions de distancia
     distance = (duration/2) / 2.91;
-    //unsigned long t2 = millis();
-    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
+
     //Bloquejem fins X
+    SetState(&status_array[0], RD_TEXT, state_t::BLOCKED_S, SENSOR_PRIO);
     vTaskDelay( pdMS_TO_TICKS( 200 ) );
+    
   }
+  
 }
 
 void taskCalculate(void * pvParameters){
   
-   //Trickery per a fer marranades de blocks
-  TickType_t xLastWakeTime;
-  xLastWakeTime = xTaskGetTickCount();
-  
 	unsigned long lastTime = xTaskGetTickCount();
 	double lastErr = 0.0;
+ 
 	for (;;) {
-    //unsigned long t1 = millis();
-    Serial.println("CALCULATE");
+    Serial.println("CALC");
+    SetState(&status_array[1], CALCULATE_ERROR_TEXT, state_t::RUN_S, CALC_PRIO);
+
 		static unsigned long now = xTaskGetTickCount();
 		static double timeChange = (double)(now - lastTime);
 		
@@ -105,29 +144,31 @@ void taskCalculate(void * pvParameters){
 		lastErr = error;
 		lastTime = now;
 
+    SetState(&status_array[1], ACTUATOR_TEXT, state_t::BLOCKED_S, ACTUATOR_PRIO);
+
     //Bloquejem fins X
-    //unsigned long t2 = millis();
-    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
     vTaskDelay( pdMS_TO_TICKS( 200 ));
+    
 	}  
 }
 
 void taskActuator(void * pvParameters){
-  //Trickery per a fer marranades de blocks
+  /*//Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
-  xLastWakeTime = xTaskGetTickCount();
+  xLastWakeTime = xTaskGetTickCount();*/
   
 	for (;;) {
-    //unsigned long t1 = millis();
+    Serial.println("ACTUACTOR");
+    SetState(&status_array[2], ACTUATOR_TEXT, state_t::RUN_S, ACTUATOR_PRIO);
 
-    Serial.println("ACTUATOR");
 		static int degree = map(PID_output, -200, 200, 54, 114);
 		myservo.write(degree);
 
-    //unsigned long t2 = millis();
-    //Serial.print("timing: "); Serial.println((unsigned long)(t2 - t1));
+    SetState(&status_array[2], ACTUATOR_TEXT, state_t::BLOCKED_S, ACTUATOR_PRIO);
+
     //Bloquejem fins X
     vTaskDelay( pdMS_TO_TICKS( 200 ) );
+    
 	} 
 }
 
@@ -145,45 +186,41 @@ void taskTracer(void * pvParameters) {
   TickType_t xLastWakeTime;
   xLastWakeTime = xTaskGetTickCount();
 
-  volatile UBaseType_t array_size;
-
-  int count = 0;  
+  int count = 0;
 
   for (;;) {
-    Serial.println("Entrem a tracerFor");
-		array_size = uxTaskGetNumberOfTasks();
-    Serial.println(array_size);
-		status_array = (TaskStatus_t *)malloc(sizeof(TaskStatus_t)*array_size); //Dinamicamente pedimos memoria;
 
-    Serial.println("Abans de GetSystemState");
-    array_size = uxTaskGetSystemState(&status_array[0], array_size, NULL); //Puntero al vector de estructura, size que nos gustaria, no nos hace falta el tiempo de boot;    
+    SetState(&status_array[3], TRACER_TEXT, state_t::RUN_S, TRACER_PRIO);
 
-    if(status_array != NULL){
-  		int i;
-  		sprintf(buff, "/***time: %d ms\n***\\", count*25); //tiempo en el que se tomó esta parte de la traza
-  
-      
-  		for (i=0; i<array_size; i++) {        
-  			sprintf(buff, "%s\t%d\n", status_array[i].pcTaskName, (int)status_array[i].uxCurrentPriority);
-  		}
-     
-  		sprintf(buff, "\\******************/"); //seguramente quede un poco feo xdddddddd
-  		//Hay que gestionar con un timer cuando pasan los 2 s para hacer un write del buffer en un archivo ...
-  
-      Serial.println(buff);
-  		++count;
-  		free(status_array);
+		int i; 
+    char tmp[75];
+		sprintf(buff, "/*** time: %d ms ***\\\n", count*25); //tiempo en el que se tomó esta parte de la traza
+    sprintf(tmp, "NAME\tSTATE\tCPRIORITY\n");
+    strcat(buff, tmp);
+    
+		for (i=0; i<TASKS; i++) {        
+			sprintf(tmp, "%s\t%u\t%d\n", status_array[i].taskName, status_array[i].state, (int)status_array[i].uxCurrentPriority);
+		  strcat(buff, tmp);
+		}
+   
+		sprintf(tmp, "\\******************/\n"); //seguramente quede un poco feo xdddddddd
+		strcat(buff, tmp);
+		//Hay que gestionar con un timer cuando pasan los 2 s para hacer un write del buffer en un archivo ...
 
-  }
+    Serial.println(buff);
+		
+		++count;
+
+    SetState(&status_array[3], TRACER_TEXT, state_t::BLOCKED_S, TRACER_PRIO); //Esto no tiene sentido, pero es para seguir el patron
 
     //Bloquejem fins X
-    vTaskDelay( pdMS_TO_TICKS( 25 ) );
+    vTaskDelay( pdMS_TO_TICKS( 25 ) ); //como es la maxima prioridad siempre entrara cada 25 ms!
   }
       
 }
 
 
-/////////////CLASSIC ARDUINO STUFF NOW/////////////////////
+/////////////KLASSIC ARDUINO STUFF NOW/////////////////////
 void setup() {
   Serial.begin(112500);
   myservo.attach(9, 700, 2400);
@@ -191,18 +228,20 @@ void setup() {
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
 
+  InitializePCBs();
+
   //Set the initial tunings
   SetTunings(0.2, 0, 8); //As is never called from a thread, no mutexes inside this function are needed
   SetPoint = 255.0; //a cara de perro
 
   //Task to read the sensor
-  //xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
+  xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
 
   //Task to compute the error
-  //xTaskCreate(taskCalculate, "COMPUTE_ERROR_TASK", 256, (void *)CALCULATE_ERROR_TEXT, CALC_PRIO, NULL);
+  xTaskCreate(taskCalculate, "COMPUTE_ERROR_TASK", 1024, (void *)CALCULATE_ERROR_TEXT, CALC_PRIO, NULL);
   
   //Task to move the actuator
-  //xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
+  xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
   
   //The tracer, which runs periodically
   xTaskCreate(taskTracer, "TRACER_TASK", 4096, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
@@ -212,5 +251,6 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  //El loop es por defecto la tarea Idle
+  Serial.println("Idle task");  
 }
