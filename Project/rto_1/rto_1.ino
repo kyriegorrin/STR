@@ -97,7 +97,7 @@ void SetState(taskstruct_t * pcb, const char* taskName, state_t state, UBaseType
 void taskRdSensor(void * pvParameters){
   
   for (;;) {
-    Serial.println("SENSOR");
+
     SetState(&status_array[0], RD_TEXT, state_t::RUN_S, SENSOR_PRIO);
 
     double duration;
@@ -129,7 +129,7 @@ void taskCalculate(void * pvParameters){
 	double lastErr = 0.0;
  
 	for (;;) {
-    Serial.println("CALC");
+
     SetState(&status_array[1], CALCULATE_ERROR_TEXT, state_t::RUN_S, CALC_PRIO);
 
 		static unsigned long now = xTaskGetTickCount();
@@ -144,7 +144,7 @@ void taskCalculate(void * pvParameters){
 		lastErr = error;
 		lastTime = now;
 
-    SetState(&status_array[1], ACTUATOR_TEXT, state_t::BLOCKED_S, ACTUATOR_PRIO);
+    SetState(&status_array[1], CALCULATE_ERROR_TEXT, state_t::BLOCKED_S, CALC_PRIO);
 
     //Bloquejem fins X
     vTaskDelay( pdMS_TO_TICKS( 200 ));
@@ -158,7 +158,7 @@ void taskActuator(void * pvParameters){
   xLastWakeTime = xTaskGetTickCount();*/
   
 	for (;;) {
-    Serial.println("ACTUACTOR");
+
     SetState(&status_array[2], ACTUATOR_TEXT, state_t::RUN_S, ACTUATOR_PRIO);
 
 		static int degree = map(PID_output, -200, 200, 54, 114);
@@ -179,8 +179,6 @@ void taskTracer(void * pvParameters) {
 	/* because it's current priority is the maximum priority in the  */
 	/* system, this is only for debugging, surely for a real system  */
 	/* it would be deactivated.					 */
-
-  Serial.println("Tracer");
 
   //Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
@@ -244,7 +242,7 @@ void setup() {
   xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
   
   //The tracer, which runs periodically
-  xTaskCreate(taskTracer, "TRACER_TASK", 4096, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
+  xTaskCreate(taskTracer, "TRACER_TASK", 1024, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
 
   vTaskStartScheduler(); 
   
@@ -252,5 +250,5 @@ void setup() {
 
 void loop() {
   //El loop es por defecto la tarea Idle
-  Serial.println("Idle task");  
+  //Serial.println("Idle task");  
 }
