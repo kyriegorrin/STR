@@ -22,7 +22,6 @@
 #define DUMMYB_PRIO   2
 #define DUMMYC_PRIO   1 
 
-
 /////////////INSANE GLOBAL VARIABLES HERE///////
 
 double distance, SetPoint;
@@ -46,6 +45,8 @@ static const char *DUMMYB_TEXT          = "DummyB";
 static const char *DUMMYC_TEXT          = "DummyC";
 
 char buff [BUFFER_SIZE];
+
+TaskHandle_t dummyA, dummyB, dummyC;
 
 typedef enum {
   IDLE_S,   //0
@@ -226,23 +227,56 @@ void taskTracer(void * pvParameters) {
 
 void taskDummyA (void * pvParameters) {
   for(;;) {
+    SetState(&status_array[4], DUMMYA_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyA)); //Como las tareas dummy son las unicas con prioridades activas cambiantes usamos PriorityGet
     delay(25);
+    SetState(&status_array[4], DUMMYA_TEXT, state_t::BLOCKED_S, uxTaskPriorityGet(dummyA)); 
+    
     vTaskDelay( pdMS_TO_TICKS( 200 ) );
   }
 }
 
 void taskDummyB (void * pvParameters) {
   for (;;) {
+    SetState(&status_array[5], DUMMYB_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyB));
     delay(25);
+    SetState(&status_array[5], DUMMYB_TEXT, state_t::BLOCKED_S, uxTaskPriorityGet(dummyB));
+    
     vTaskDelay( pdMS_TO_TICKS( 200 ) );
   }
 }
 
 void taskDummyC (void * pvParameters) {
   for (;;) {
+    SetState(&status_array[6], DUMMYC_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyC));
     delay(25);
     vTaskDelay( pdMS_TO_TICKS( 200 ) );
+    SetState(&status_array[6], DUMMYC_TEXT, state_t::BLOCKED_S, uxTaskPriorityGet(dummyC));
   }
+}
+
+void taskPriorityExchanger (void * pvParameters) {
+
+  int prio[sizeof(int)*3];
+  bool up = true;
+  
+  prio[0] = DUMMYA_PRIO; //A
+  prio[1] = DUMMYB_PRIO; //B
+  prio[2] = DUMMYC_PRIO; //C
+  
+  for(;;) {
+
+    vTaskDelay( pdMS_TO_TICKS( 200 );
+    if(prio[0] == DUMMYC_PRIO) up = false;
+    else if(prio[2] == DUMMYC_PRIO) up = true;
+
+    if(up){
+      //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
+      vTaskPrioritySet();
+    }
+    else{
+      
+    }
+  }  
 }
 
 
@@ -261,9 +295,13 @@ void setup() {
   SetPoint = 255.0; //a cara de perro
 
   //Dummy tasks
+  xTaskCreate(taskDummyA, "DUMMYA_TASK", 64, (void*)DUMMYA_TEXT, DUMMYA_PRIO, &dummyA);
+  xTaskCreate(taskDummyB, "DUMMYB_TASK", 64, (void*)DUMMYB_TEXT, DUMMYB_PRIO, &dummyB);
+  xTaskCreate(taskDummyC, "DUMMYC_TASK", 64, (void*)DUMMYC_TEXT, DUMMYC_PRIO, &dummyC);
+
+  //Task that exchanges the above tasks priority
   xTaskCreate(taskDummyA, "DUMMYA_TASK", 256, (void*)DUMMYA_TEXT, DUMMYA_PRIO, NULL);
-  xTaskCreate(taskDummyB, "DUMMYB_TASK", 256, (void*)DUMMYB_TEXT, DUMMYB_PRIO, NULL);
-  xTaskCreate(taskDummyC, "DUMMYC_TASK", 256, (void*)DUMMYC_TEXT, DUMMYC_PRIO, NULL);
+
   
   //Task to read the sensor
   xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
