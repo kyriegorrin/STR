@@ -11,9 +11,10 @@
 /////////////CONSTANTS BÀRBARES/////////////////
 #define trigPin 11
 #define echoPin 12
-#define TASKS 4
+#define TASKS 8
 #define BUFFER_SIZE 2000
 
+#define EXCHAN_PRIO   8
 #define TRACER_PRIO   7 //Max. en el RT
 #define SENSOR_PRIO   6 
 #define CALC_PRIO     5
@@ -43,6 +44,7 @@ static const char *TRACER_TEXT 		      = "Tracer";
 static const char *DUMMYA_TEXT          = "DummyA";
 static const char *DUMMYB_TEXT          = "DummyB";
 static const char *DUMMYC_TEXT          = "DummyC";
+static const char *EXCHAN_TEXT          = "Exchanger";
 
 char buff [BUFFER_SIZE];
 
@@ -85,6 +87,16 @@ void InitializePCBs() {
   status_array[1].uxCurrentPriority = CALC_PRIO;
   status_array[2].uxCurrentPriority = ACTUATOR_PRIO;
   status_array[3].uxCurrentPriority = TRACER_PRIO;
+
+  status_array[4].taskName = DUMMYA_TEXT;
+  status_array[5].taskName = DUMMYB_TEXT;
+  status_array[6].taskName = DUMMYB_TEXT;
+  status_array[7].taskName = EXCHAN_TEXT;
+
+  status_array[4].uxCurrentPriority = DUMMYA_PRIO;
+  status_array[5].uxCurrentPriority = DUMMYB_PRIO;
+  status_array[6].uxCurrentPriority = DUMMYC_PRIO;
+  status_array[7].uxCurrentPriority = EXCHAN_PRIO;
   
   for (int i = 0; i < TASKS; ++i) {
     status_array[i].state = IDLE_S;  
@@ -256,26 +268,48 @@ void taskDummyC (void * pvParameters) {
 
 void taskPriorityExchanger (void * pvParameters) {
 
-  int prio[sizeof(int)*3];
+  TaskHandle_t* prio[sizeof(TaskHandle_t)*3];
   bool up = true;
   
-  prio[0] = DUMMYA_PRIO; //A
-  prio[1] = DUMMYB_PRIO; //B
-  prio[2] = DUMMYC_PRIO; //C
+  prio[0] = &dummyA; //A
+  prio[1] = &dummyB; //B
+  prio[2] = &dummyC; //C
   
   for(;;) {
-
-    vTaskDelay( pdMS_TO_TICKS( 200 );
-    if(prio[0] == DUMMYC_PRIO) up = false;
-    else if(prio[2] == DUMMYC_PRIO) up = true;
+    SetState(&status_array[7], EXCHAN_TEXT, state_t::RUN_S, EXCHAN_PRIO);
+    if(prio[0] == &dummyC) up = false;
+    else if(prio[2] == &dummyC) up = true;
 
     if(up){
-      //TODOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-      vTaskPrioritySet();
+      if (prio[2] == &dummyC) {
+        prio[2] = &dummyB;
+        prio[1] = &dummyC;
+        vTaskPrioritySet(dummyC, DUMMYB_PRIO);
+        vTaskPrioritySet(dummyB, DUMMYC_PRIO); 
+      }
+      else if (prio[1] == &dummyC) {
+        prio[1] = &dummyA;
+        prio[0] = &dummyC;
+        vTaskPrioritySet(dummyC, DUMMYA_PRIO);
+        vTaskPrioritySet(dummyA, DUMMYB_PRIO); 
+      }
     }
     else{
-      
+      if (prio[0] == &dummyC) {
+        prio[0] = &dummyA;
+        prio[1] = &dummyC;
+        vTaskPrioritySet(dummyC, DUMMYB_PRIO);
+        vTaskPrioritySet(dummyA, DUMMYA_PRIO); 
+      }
+      else if (prio[1] == &dummyC) {
+        prio[1] = &dummyB;
+        prio[2] = &dummyC;
+        vTaskPrioritySet(dummyC, DUMMYC_PRIO);
+        vTaskPrioritySet(dummyB, DUMMYB_PRIO); 
+      }      
     }
+    SetState(&status_array[7], EXCHAN_TEXT, state_t::RUN_S, EXCHAN_PRIO);
+    vTaskDelay( pdMS_TO_TICKS( 200 ));
   }  
 }
 
@@ -300,8 +334,7 @@ void setup() {
   xTaskCreate(taskDummyC, "DUMMYC_TASK", 64, (void*)DUMMYC_TEXT, DUMMYC_PRIO, &dummyC);
 
   //Task that exchanges the above tasks priority
-  xTaskCreate(taskDummyA, "DUMMYA_TASK", 256, (void*)DUMMYA_TEXT, DUMMYA_PRIO, NULL);
-
+  xTaskCreate(taskPriorityExchanger, "PRIO_EXCHANGER", 256, (void*)EXCHAN_TEXT, EXCHAN_PRIO, NULL);
   
   //Task to read the sensor
   xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
