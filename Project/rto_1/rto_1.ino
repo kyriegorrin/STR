@@ -11,10 +11,10 @@
 /////////////CONSTANTS BÀRBARES/////////////////
 #define trigPin 11
 #define echoPin 12
-#define TASKS 1 //Numero de tareas diferentes el Tracer que hay en el RT
-#define BUFFER_SIZE 8192
+#define TASKS 4
+#define BUFFER_SIZE 2000
 
-#define TRACER_PRIO   10 //Max. en el RT
+#define TRACER_PRIO   4 //Max. en el RT
 #define SENSOR_PRIO   3 
 #define CALC_PRIO     2
 #define ACTUATOR_PRIO 1 
@@ -37,6 +37,10 @@ static const char *RD_TEXT 		= "Task \"taskRdSensor\" is running\r\n";
 static const char *CALCULATE_ERROR_TEXT = "Task \"taskCalculate\" is running\r\n";
 static const char *ACTUATOR_TEXT	= "Task \"taskActuator\" is running\r\n"; 
 static const char *TRACER_TEXT 		= "Task \"taskTracer\" is running\r\n";
+
+char buff [BUFFER_SIZE];
+
+TaskStatus_t status_array [sizeof(TaskStatus_t)*4];
 
 /////////////AUX. FUNCTIONS/////////////////////
 
@@ -135,26 +139,30 @@ void taskTracer(void * pvParameters) {
 	/* system, this is only for debugging, surely for a real system  */
 	/* it would be deactivated.					 */
 
-    //Trickery per a fer marranades de blocks
-    TickType_t xLastWakeTime;
-    xLastWakeTime = xTaskGetTickCount();
+  Serial.println("Tracer");
 
-    int array_size;
-    TaskStatus_t* status_array;
+  //Trickery per a fer marranades de blocks
+  TickType_t xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();
 
-	  int count = 0;
-      
-	  char buff [BUFFER_SIZE];
+  volatile UBaseType_t array_size;
 
-	  for (;;) {
-  		array_size = uxTaskGetNumberOfTasks();
-  		status_array = (TaskStatus_t *)pvPortMalloc(sizeof(TaskStatus_t)*array_size); //Dinamicamente pedimos memoria;
-  
-      array_size = uxTaskGetSystemState(status_array, array_size, NULL); //Puntero al vector de estructura, size que nos gustaria, no nos hace falta el tiempo de boot;    
-       
+  int count = 0;  
+
+  for (;;) {
+    Serial.println("Entrem a tracerFor");
+		array_size = uxTaskGetNumberOfTasks();
+    Serial.println(array_size);
+		status_array = (TaskStatus_t *)malloc(sizeof(TaskStatus_t)*array_size); //Dinamicamente pedimos memoria;
+
+    Serial.println("Abans de GetSystemState");
+    array_size = uxTaskGetSystemState(&status_array[0], array_size, NULL); //Puntero al vector de estructura, size que nos gustaria, no nos hace falta el tiempo de boot;    
+
+    if(status_array != NULL){
   		int i;
   		sprintf(buff, "/***time: %d ms\n***\\", count*25); //tiempo en el que se tomó esta parte de la traza
-
+  
+      
   		for (i=0; i<array_size; i++) {        
   			sprintf(buff, "%s\t%d\n", status_array[i].pcTaskName, (int)status_array[i].uxCurrentPriority);
   		}
@@ -166,16 +174,18 @@ void taskTracer(void * pvParameters) {
   		++count;
   		free(status_array);
 
-      //Bloquejem fins X
-      vTaskDelayUntil( &xLastWakeTime, pdMS_TO_TICKS( 25 ) );
-    }
+  }
+
+    //Bloquejem fins X
+    vTaskDelay( pdMS_TO_TICKS( 25 ) );
+  }
       
 }
 
 
 /////////////CLASSIC ARDUINO STUFF NOW/////////////////////
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(112500);
   myservo.attach(9, 700, 2400);
   //Pinmodes pulsein
   pinMode(trigPin, OUTPUT);
@@ -186,16 +196,16 @@ void setup() {
   SetPoint = 255.0; //a cara de perro
 
   //Task to read the sensor
-  xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
+  //xTaskCreate(taskRdSensor, "RD_SENSOR_TASK", 256, (void *)RD_TEXT, SENSOR_PRIO, NULL );
 
   //Task to compute the error
-  xTaskCreate(taskCalculate, "COMPUTE_ERROR_TASK", 256, (void *)CALCULATE_ERROR_TEXT, CALC_PRIO, NULL);
+  //xTaskCreate(taskCalculate, "COMPUTE_ERROR_TASK", 256, (void *)CALCULATE_ERROR_TEXT, CALC_PRIO, NULL);
   
   //Task to move the actuator
-  xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
+  //xTaskCreate(taskActuator, "ACTUATOR_TASK", 256, (void *)ACTUATOR_TEXT, ACTUATOR_PRIO, NULL);
   
   //The tracer, which runs periodically
-  xTaskCreate(taskTracer, "TRACER_TASK", 256, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
+  xTaskCreate(taskTracer, "TRACER_TASK", 4096, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
 
   vTaskStartScheduler(); 
   
