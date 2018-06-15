@@ -11,9 +11,10 @@
 /////////////CONSTANTS BÀRBARES/////////////////
 #define trigPin 11
 #define echoPin 12
-#define TASKS 8
+#define TASKS 9
 #define BUFFER_SIZE 2000
 
+#define STOP_PRIO     9
 #define EXCHAN_PRIO   8
 #define TRACER_PRIO   7 //Max. en el RT
 #define SENSOR_PRIO   6 
@@ -45,6 +46,7 @@ static const char *DUMMYA_TEXT          = "DummyA";
 static const char *DUMMYB_TEXT          = "DummyB";
 static const char *DUMMYC_TEXT          = "DummyC";
 static const char *EXCHAN_TEXT          = "Exchanger";
+static const char *STOP_TEXT            = "Stop";
 
 char buff [BUFFER_SIZE];
 
@@ -67,6 +69,8 @@ typedef struct {
 } taskstruct_t; //Linux like, happy Juan José Costa!
 
 taskstruct_t status_array [sizeof(taskstruct_t)*TASKS];
+
+
 
 /////////////AUX. FUNCTIONS/////////////////////
 
@@ -92,11 +96,13 @@ void InitializePCBs() {
   status_array[5].taskName = DUMMYB_TEXT;
   status_array[6].taskName = DUMMYB_TEXT;
   status_array[7].taskName = EXCHAN_TEXT;
+  status_array[8].taskName = STOP_TEXT;
 
   status_array[4].uxCurrentPriority = DUMMYA_PRIO;
   status_array[5].uxCurrentPriority = DUMMYB_PRIO;
   status_array[6].uxCurrentPriority = DUMMYC_PRIO;
   status_array[7].uxCurrentPriority = EXCHAN_PRIO;
+  status_array[8].uxCurrentPriority = STOP_PRIO;
   
   for (int i = 0; i < TASKS; ++i) {
     status_array[i].state = IDLE_S;  
@@ -231,7 +237,7 @@ void taskTracer(void * pvParameters) {
 
     SetState(&status_array[3], TRACER_TEXT, state_t::BLOCKED_S, TRACER_PRIO); //Esto no tiene sentido, pero es para seguir el patron
 
-    //Bloquejem fins X
+    //Bloquejem fins X (valors per a 25 ms trobats experimentalment
     vTaskDelay( pdMS_TO_TICKS( 25 ) ); //como es la maxima prioridad siempre entrara cada 25 ms!
   }
       
@@ -320,6 +326,26 @@ void taskPriorityExchanger (void * pvParameters) {
   }  
 }
 
+void taskStop(void * pvParameters){
+  /*//Trickery per a fer marranades de blocks
+  TickType_t xLastWakeTime;
+  xLastWakeTime = xTaskGetTickCount();*/
+  
+  for (;;) {
+
+    //La funció de ms_to_ticks no funciona com s'espera, així que hem trobat valor experimentalment
+    vTaskDelay( 117 );
+    
+    SetState(&status_array[8], STOP_TEXT, state_t::RUN_S, STOP_PRIO);
+
+    //Aqui parem les tasques
+    vTaskSuspendAll();
+
+    SetState(&status_array[8], STOP_TEXT, state_t::BLOCKED_S, STOP_PRIO);
+        
+  } 
+}
+
 
 /////////////KLASSIC ARDUINO STUFF NOW/////////////////////
 void setup() {
@@ -354,6 +380,9 @@ void setup() {
   
   //The tracer, which runs periodically
   xTaskCreate(taskTracer, "TRACER_TASK", 1024, (void *)TRACER_TEXT, TRACER_PRIO, NULL );
+
+  //Tasca de parada
+  xTaskCreate(taskStop, "STOP_TASK", 64, (void *)STOP_TEXT, STOP_PRIO, NULL );
 
   vTaskStartScheduler(); 
   

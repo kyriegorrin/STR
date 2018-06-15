@@ -43,14 +43,14 @@
  * See http://www.freertos.org/a00110.html.
  *----------------------------------------------------------*/
 //Memes afegits
-//#define configTICK_RATE_HZ             	    250
+#define configTICKRATE_HZ             	    16000
 
 // And on to the things the same no matter the AVR type...
 #define configUSE_PREEMPTION                1
 #define configUSE_IDLE_HOOK                 1
 #define configUSE_TICK_HOOK                 0
-#define configCPU_CLOCK_HZ                  ( ( uint32_t ) 16000 )			// This F_CPU variable set by the environment
-//#define configCPU_CLOCK_HZ                  ( ( uint32_t ) F_CPU )			// This F_CPU variable set by the environment
+//#define configCPU_CLOCK_HZ                  ( ( uint32_t ) 16000 )			// This F_CPU variable set by the environment
+#define configCPU_CLOCK_HZ                  ( ( uint32_t ) F_CPU )			// This F_CPU variable set by the environment
 #define configMAX_PRIORITIES                10
 #define configMINIMAL_STACK_SIZE            ( ( UBaseType_t ) 85 )
 #define configIDLE_STACK_SIZE               ( ( UBaseType_t ) 192 )
