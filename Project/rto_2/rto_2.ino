@@ -245,8 +245,8 @@ void taskTracer(void * pvParameters) {
     char *context_pointer = (char *) &exec_array[num_contexts];
     
 		for (i=0; i<TASKS; i++) {  
-      //Por qué +48? Porque la gestión y traducción de chars del print es una puta mierda y para arreglarlo he tenido
-      //que hacer la traducción de valores ASCII a manopla después de 2 horas de debugging. Estoy escribiendo esto muy cabreado.
+      //Por qué +48? Porque la gestión y traducción de chars del print es lamentable.
+      //He tenido que hacer la traducción de valores ASCII a manopla después de 2 horas de debugging. Estoy escribiendo esto muy cabreado.
       context_pointer[i] = 48 + (char)status_array[i].uxCurrentPriority;
 			sprintf(tmp, "%s\t%u\t%d\n", status_array[i].taskName, status_array[i].state, (int)status_array[i].uxCurrentPriority);
 		  strcat(buff, tmp);
