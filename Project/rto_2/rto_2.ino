@@ -146,7 +146,7 @@ void printaContexts(){
 }
 
 /////////////RTOS STUFF NOW/////////////////////
-
+//Tarea de para leer la información del sensor de distancia
 void taskRdSensor(void * pvParameters){  
   for (;;) {
 
@@ -173,6 +173,7 @@ void taskRdSensor(void * pvParameters){
   }  
 }
 
+//Tarea para los calculos del PID controller
 void taskCalculate(void * pvParameters){
   
 	unsigned long last = xTaskGetTickCount();
@@ -200,6 +201,7 @@ void taskCalculate(void * pvParameters){
 	}  
 }
 
+//Tarea para usar el servomotor
 void taskActuator(void * pvParameters){
   /*//Trickery per a fer marranades de blocks
   TickType_t xLastWake;
@@ -218,6 +220,7 @@ void taskActuator(void * pvParameters){
 	} 
 }
 
+//Tarea para trackear el estado y prioridad de cada tarea
 void taskTracer(void * pvParameters) {
 
 	/* This task is in charge of making a trace of the system        */
@@ -268,6 +271,7 @@ void taskTracer(void * pvParameters) {
   }      
 }
 
+//Dummy A
 void taskDummyA (void * pvParameters) {
   for(;;) {
     SetState(&status_array[4], DUMMYA_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyA)); //Como las tareas dummy son las unicas con prioridades activas cambiantes usamos PriorityGet
@@ -278,6 +282,7 @@ void taskDummyA (void * pvParameters) {
   }
 }
 
+//Dummy B
 void taskDummyB (void * pvParameters) {
   for (;;) {
     SetState(&status_array[5], DUMMYB_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyB));
@@ -288,6 +293,7 @@ void taskDummyB (void * pvParameters) {
   }
 }
 
+//Dummy C
 void taskDummyC (void * pvParameters) {
   for (;;) {
     SetState(&status_array[6], DUMMYC_TEXT, state_t::RUN_S, uxTaskPriorityGet(dummyC));
@@ -297,6 +303,7 @@ void taskDummyC (void * pvParameters) {
   }
 }
 
+//Tarea que se encarga de intercambiar las prioridades de las tareas Dummy de manera periodica
 void taskPriorityExchanger (void * pvParameters) {
 
   TaskHandle_t* prio[sizeof(TaskHandle_t)*3];
@@ -351,6 +358,8 @@ void taskPriorityExchanger (void * pvParameters) {
   }  
 }
 
+//Tarea encargada de parar la ejecución del programa a los 2 segundos y 
+//printar el resumen de las prioridades recogidas por el tracer
 void taskStop(void * pvParameters){
   /*//Trickery per a fer marranades de blocks
   TickType_t xLastWakeTime;
